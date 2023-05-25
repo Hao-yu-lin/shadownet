@@ -4,14 +4,14 @@ def parse_args():
     desc = "Pytorch implementation of Shadowremoval"
     parser = argparse.ArgumentParser(description = desc)
      
-    parser.add_argument('--train_path', type=str, default='/home/haoyu/Desktop/partical/ShadowNet_Data/train3', help='train_path')
+    parser.add_argument('--train_path', type=str, default='/home/haoyu/Desktop/partical/ShadowNet_Data/train5', help='train_path')
     parser.add_argument('--test_path', type=str, default='/home/haoyu/Desktop/partical/ShadowNet_Data/test', help='test_path')
     parser.add_argument('--result_dir', type=str, default='/home/haoyu/Desktop/partical/shadow_removal3/output/img')
     parser.add_argument('--ckpt_dir', type=str, default='/home/haoyu/Desktop/partical/shadow_removal3/output/ckpt')
     
     # pretrain
-    parser.add_argument('--pre_trained', type=bool, default=True)
-    parser.add_argument('--prepretrain_path', type=str, default="/home/haoyu/Desktop/partical/shadow_removal3/output/ckpt/pretrained.pt")
+    parser.add_argument('--pre_trained', type=bool, default=False)
+    parser.add_argument('--prepretrain_path', type=str, default="/home/haoyu/Desktop/GUI/parial-GUI/pycopy/module_ckpt/shadow_removal.pt")
     
     parser.add_argument('--iteration', type=int, default=78080, help='The number of training iterations')
     parser.add_argument('--batch_size', type=int, default=4, help='The size of batch size')
@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--n_res', type=int, default=4, help='The number of resblock')
     parser.add_argument('--n_dis', type=int, default=6, help='The number of discriminator layer')
     
-    parser.add_argument('--img_size', type=int, default=256, help='The size of image')
+    parser.add_argument('--img_size', type=int, default=128, help='The size of image')
     parser.add_argument('--img_h', type=int, default=256, help='The org size of image')
     parser.add_argument('--img_w', type=int, default=256, help='The org size of image')
     parser.add_argument('--img_ch', type=int, default=3, help='The size of image channel')

@@ -1,5 +1,5 @@
 import os
-
+import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
 from torchvision import transforms
@@ -56,12 +56,52 @@ class DatasetFolder(Dataset):
         self.intr2d_path = os.path.join(root, shadow_state[1])
         print(" ------ data : ", len(self.samples), " ------- ")
         
+    def __img_preprocessing(self, img):
+        image_array = np.array(img, dtype=np.float32)
+        r, g, b = np.split(image_array, 3, axis=2)
+
+        r_mean = np.mean(r)
+        g_mean = np.mean(g)
+        b_mean = np.mean(b)
+
+        avg =  np.multiply(np.multiply(b_mean, g_mean), r_mean) ** (1.0/3)
+        bCoef = avg/b_mean
+        gCoef = avg/g_mean
+        rCoef = avg/r_mean
+
+        b = np.clip(b * bCoef, 0, 255)
+        g = np.clip(g * gCoef, 0, 255)
+        r= np.clip(r * rCoef, 0, 255)
+
+        r_mean = np.mean(r)
+        g_mean = np.mean(g)
+        b_mean = np.mean(b)
+        
+        r_mean_new = np.mean(r[r > r_mean])
+        g_mean_new = np.mean(g[g > g_mean])
+        b_mean_new = np.mean(b[b > b_mean])
+        new_coeff = 255 / max(r_mean_new, g_mean_new, b_mean_new)
+
+        r = np.squeeze(r, axis = 2)
+        g = np.squeeze(g, axis = 2)
+        b = np.squeeze(b, axis = 2)
+
+        image_array[:, :, 0] = r * new_coeff
+        image_array[:, :, 1] = g * new_coeff
+        image_array[:, :, 2] = b * new_coeff
+
+        image_array = np.clip(image_array, 0, 255)
+
+        img = Image.fromarray(np.uint8(image_array))
+        return img
+        
     def __len__(self):
         return len(self.samples)
     
     def __getitem__(self, index):
         path = self.samples[index]
         sample = Image.open(path)
+        sample = self.__img_preprocessing(sample)
         sample = self.transform(sample)
         
         intr2d_path = os.path.join(self.intr2d_path, self.fnames[index])
@@ -70,7 +110,7 @@ class DatasetFolder(Dataset):
         # print(intr2d)
         intr2d = self.intr2d_tfm(intr2d)
         
-        # print(intr2d)
+        
         return sample, intr2d
 
 

@@ -55,61 +55,92 @@ class Generator(nn.Module):
             nn.ReflectionPad2d(3),
             nn.Conv2d(embed_dims[0]//2, output_c, kernel_size=7, stride=1, padding=0, bias=False)
         )
+        
+        self.prewitt_x = nn.Conv2d(output_c, output_c, 3, stride=1, padding=1, bias = False)
+        sobel_kernel_x = torch.FloatTensor([[3, 10, 3], [0, 0, 0], [-3, -10, -3]])
+        sobel_kernel_x = nn.Parameter(sobel_kernel_x.unsqueeze(0).unsqueeze(0), requires_grad=False)
+        self.prewitt_x.weight.data = sobel_kernel_x.repeat(output_c, output_c, 1, 1)
+        
+        self.prewitt_y = nn.Conv2d(output_c, output_c, 3, stride=1, padding=1, bias = False)
+        sobel_kernel_y = torch.FloatTensor([[3, 0, -3], [10, 0, -10], [3, 0, -3]])
+        sobel_kernel_y = nn.Parameter(sobel_kernel_y.unsqueeze(0).unsqueeze(0), requires_grad=False)
+        self.prewitt_y.weight.data = sobel_kernel_y.repeat(output_c, output_c, 1, 1)
+        
+        self.prewitt_45 = nn.Conv2d(output_c, output_c, 3, stride=1, padding=1, bias = False)
+        sobel_kernel_45 = torch.FloatTensor([[0, -3, -10], [3, 0, -3], [10, 3, 0]])
+        sobel_kernel_45 = nn.Parameter(sobel_kernel_45.unsqueeze(0).unsqueeze(0), requires_grad=False)
+        self.prewitt_45.weight.data = sobel_kernel_45.repeat(output_c, output_c, 1, 1)
+        
+        self.prewitt_135 = nn.Conv2d(output_c, output_c, 3, stride=1, padding=1, bias = False)
+        sobel_kernel_135 = torch.FloatTensor([[10, 3, 0], [3, 0, -3], [0, -3, -10]])
+        sobel_kernel_135 = nn.Parameter(sobel_kernel_135.unsqueeze(0).unsqueeze(0), requires_grad=False)
+        self.prewitt_135.weight.data = sobel_kernel_135.repeat(output_c, output_c, 1, 1)
+        
+        
+        self.norm = nn.InstanceNorm2d(output_c) 
+        self.relu = nn.ReLU(True)
     def forward(self, x):
-        output1_ = self.patch_embed_1(x)
-        output1_ = self.transformblock_1(output1_)
+        output1_1 = self.patch_embed_1(x)
+        output1_ = self.transformblock_1(output1_1)
         
-        output2_ = self.patch_embed_2(output1_)
-        output2_ = self.transformblock_2(output2_)
+        output2_1 = self.patch_embed_2(output1_)
+        output2_ = self.transformblock_2(output2_1)
         
-        output3_ = self.patch_embed_3(output2_)
-        output3_ = self.transformblock_3(output3_)
+        output3_1 = self.patch_embed_3(output2_)
+        output3_ = self.transformblock_3(output3_1)
         
-        output4_ = self.patch_embed_4(output3_)
-        output4_ = self.transformblock_4(output4_)
+        output4_1 = self.patch_embed_4(output3_)
+        output4_ = self.transformblock_4(output4_1)
         
         # B x embed_dims[3] x H/16 x W/16
         output4 = self.resnetblock_4(output4_)
-        output4, _, _ = self.GAPandGMP_4(output4)
-        gamma, beta = self.GammaBeta_4(output4)
-        for i in range(self.n_blocks[3]):
-            output4 = self.resnetadainblock_4(output4, gamma, beta)
-        output4 = output4 + output4_ 
+        # output4, _, _ = self.GAPandGMP_4(output4)
+        # gamma, beta = self.GammaBeta_4(output4)
+        # for i in range(self.n_blocks[3]):
+        #     output4 = self.resnetadainblock_4(output4, gamma, beta)
+        output4 = output4 + output4_1 
         output4 = self.upsampling_4(output4)    #  B x embed_dims[2] x H/8 x W/8
         
         # output3 = output3 + output4
         # B x embed_dims[2] x H/8 x W/8
         output3 = self.resnetblock_3(output4)
-        output3, _, _ = self.GAPandGMP_3(output3)
-        gamma, beta = self.GammaBeta_3(output3)
-        for i in range(self.n_blocks[2]):
-            output3 = self.resnetadainblock_3(output3, gamma, beta)
-        output3 = output3 + output3_
+        # output3, _, _ = self.GAPandGMP_3(output3)
+        # gamma, beta = self.GammaBeta_3(output3)
+        # for i in range(self.n_blocks[2]):
+        #     output3 = self.resnetadainblock_3(output3, gamma, beta)
+        output3 = output3 + output3_1
         output3 = self.upsampling_3(output3)    # B x embed_dims[1] x H/4 x W/4
         
         # output2 = output2 + output3
         # B x embed_dims[1] x H/4 x W/4
         output2 = self.resnetblock_2(output3)
-        output2, _, _ = self.GAPandGMP_2(output2)
-        gamma, beta = self.GammaBeta_2(output2)
-        for i in range(self.n_blocks[1]):
-            output2 = self.resnetadainblock_2(output2, gamma, beta)
-        output2 = output2 + output2_
+        # output2, _, _ = self.GAPandGMP_2(output2)
+        # gamma, beta = self.GammaBeta_2(output2)
+        # for i in range(self.n_blocks[1]):
+        #     output2 = self.resnetadainblock_2(output2, gamma, beta)
+        output2 = output2 + output2_1
         output2 = self.upsampling_2(output2)    # B x embed_dims[0] x H/2 x W/2
         
         # output1 = output2 + output1
         # B x embed_dims[0] x H/2 x W/2
         output1 = self.resnetblock_1(output2)
-        output1, cam_logit, heat_map = self.GAPandGMP_1(output1)
-        gamma, beta = self.GammaBeta_1(output1)
-        for i in range(self.n_blocks[0]):
-            output1 = self.resnetadainblock_1(output1, gamma, beta)
-        output1 = output1 + output1_
+        # output1, cam_logit, heat_map = self.GAPandGMP_1(output1)
+        # gamma, beta = self.GammaBeta_1(output1)
+        # for i in range(self.n_blocks[0]):
+        #     output1 = self.resnetadainblock_1(output1, gamma, beta)
+        output1 = output1 + output1_1
         output1 = self.upsampling_1(output1)
-
-        output = (self.output_layer(output1) + x).tanh()
+        output = self.output_layer(output1) + x
+        pre_x = self.relu(self.norm(self.prewitt_x(output)))
+        pre_y = self.relu(self.norm(self.prewitt_y(output)))
+        pre_45 = self.relu(self.norm(self.prewitt_45(output)))
+        pre_135 = self.relu(self.norm(self.prewitt_135(output)))
         
-        return output, cam_logit, heat_map
+        pre = 0.25 * pre_x + 0.25 * pre_y + 0.25 * pre_45 + 0.25 * pre_135
+        
+        output = (0.7 * pre + output).tanh()
+
+        return output, -1, -1
         
 
 class Discriminator(nn.Module):
